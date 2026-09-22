@@ -47,6 +47,7 @@ import {
   RotateCcw,
   Download,
   Headphones,
+  Linkedin,
 } from 'lucide-react';
 const icons = {
   dashboard: LayoutDashboard,

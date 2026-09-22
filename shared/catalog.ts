@@ -322,6 +322,7 @@ export const people = [
     goal: 'Busco compartir análisis de datos y aprender de procesos',
     skills: ['Power BI', 'Estadística'],
     contributions: 18,
+    linkedin: 'https://linkedin.com/in/anamartinez-demo',
   },
   {
     id: 'carlos',
@@ -332,6 +333,7 @@ export const people = [
     goal: 'Busco mentoría en finanzas y mejorar procesos',
     skills: ['BPMN', 'Liderazgo'],
     contributions: 24,
+    linkedin: 'https://linkedin.com/in/carlosmendoza-demo',
   },
   {
     id: 'lucia',
@@ -342,6 +344,7 @@ export const people = [
     goal: 'Busco colaborar con proyectos de tecnología',
     skills: ['Finanzas', 'Planeación'],
     contributions: 12,
+    linkedin: 'https://linkedin.com/in/lucyrmz-demo',
   },
 ];
 export const initialThreads = [
@@ -398,6 +401,7 @@ export type Progress = {
     goal: string;
     skills: string;
     portfolio: string;
+    linkedin: string;
   };
   redemptions: { id: string; rewardId: string; date: string; status: string }[];
   connections: string[];
@@ -428,6 +432,7 @@ export type Snapshot = {
   progress: Progress;
   week: string;
   threads: Thread[];
+  chatMessages: { id: string; courseId: string; author: string; authorName: string; body: string; created: number }[];
   csrf: string;
   aiEnabled: boolean;
 };

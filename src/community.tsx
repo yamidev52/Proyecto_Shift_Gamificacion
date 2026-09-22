@@ -22,6 +22,9 @@ export function Community({
   const [channel, setChannel] = useState('Todos');
   const [newPost, setNewPost] = useState(false);
   const [reply, setReply] = useState<Record<string, string>>({});
+  const [chatCourse, setChatCourse] = useState('procesos');
+  const [chatMsg, setChatMsg] = useState('');
+  const [showChatNote, setShowChatNote] = useState(true);
   async function post(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
@@ -71,6 +74,11 @@ export function Community({
         >
           Foros Mastermind
         </button>
+        <button 
+        className={tab === 'Chat' ? 'selected' : ''} 
+        onClick={() => setTab('Chat')}
+        >Chat en vivo
+        </button>
         <button
           className={tab === 'Conexiones' ? 'selected' : ''}
           onClick={() => setTab('Conexiones')}
@@ -78,7 +86,7 @@ export function Community({
           Conexiones de la semana
         </button>
       </div>
-      {tab === 'Mastermind' ? (
+      {tab === 'Mastermind' && (
         <div className="community-layout">
           <section>
             {newPost && (
@@ -232,7 +240,78 @@ export function Community({
             </section>
           </aside>
         </div>
-      ) : (
+      )}
+
+      {/* 2. CHAT EN VIVO */}
+      {tab === 'Chat' && (
+        <div className="panel" style={{ display: 'flex', flexDirection: 'column', height: '600px', padding: '0' }}>
+          <div style={{ padding: '20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfdfa', borderRadius: '13px 13px 0 0' }}>
+            <label className="course-select" style={{ minWidth: '200px' }}>
+              <span>Sala de Materia</span>
+              <select value={chatCourse} onChange={(e) => setChatCourse(e.target.value)} style={{ padding: '8px' }}>
+                <option value="procesos">Modelación de procesos</option>
+                <option value="estadistica">Estadística y pronósticos</option>
+                <option value="sistemas">Sistemas operativos</option>
+                <option value="proyectos">Proyectos de tecnología</option>
+              </select>
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#688c57', fontWeight: 600 }}>
+              <span className="live-dot" style={{ background: '#7bb941', width: '8px', height: '8px' }}/> 3 en línea
+            </div>
+          </div>
+
+          {showChatNote && (
+            <div className="notice" style={{ margin: '15px 20px 0', background: '#eef4e7', border: '1px solid #d4e2c9', color: '#637a50', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                <Icon name="clock" size={16} /> Chat informal. Para proteger tu privacidad, los mensajes se limpian automáticamente cada semana.
+              </span>
+              <button className="icon-button" onClick={() => setShowChatNote(false)}><Icon name="close" size={16}/></button>
+            </div>
+          )}
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {snapshot.chatMessages.filter(m => m.courseId === chatCourse).length === 0 ? (
+              <p className="muted" style={{ textAlign: 'center', margin: 'auto' }}>No hay mensajes recientes en esta sala. ¡Sé el primero en saludar!</p>
+            ) : (
+              snapshot.chatMessages.filter(m => m.courseId === chatCourse).map(msg => (
+                <div key={msg.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <span className="avatar small" style={{ flexShrink: 0 }}>{msg.authorName.charAt(0)}</span>
+                  <div style={{ background: msg.author === snapshot.userId ? '#eef5e6' : '#f4f6f3', padding: '10px 14px', borderRadius: '0 12px 12px 12px', border: '1px solid #e7ebe5', maxWidth: '85%' }}>
+                    <div style={{ fontSize: '10px', color: '#88987b', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong>{msg.author === snapshot.userId ? 'Tú' : msg.authorName}</strong>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span>{new Date(msg.created).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        {msg.author === snapshot.userId && (
+                          <button 
+                            type="button"
+                            title="Eliminar mensaje"
+                            style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', color: '#a1ada2' }}
+                            onClick={() => act('/chat/' + msg.id + '/delete', {}, 'Mensaje eliminado')}
+                          >
+                            <Icon name="close" size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#4a5c43', lineHeight: 1.5 }}>{msg.body}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <form style={{ padding: '15px 20px', borderTop: '1px solid var(--line)', display: 'flex', gap: '10px' }} onSubmit={async (e) => {
+            e.preventDefault();
+            if (await act('/chat', { courseId: chatCourse, body: chatMsg }, '')) setChatMsg('');
+          }}>
+            <input placeholder="Escribe un mensaje al grupo..." value={chatMsg} onChange={e => setChatMsg(e.target.value)} required maxLength={500} style={{ flex: 1, background: '#f7f9f7' }}/>
+            <button className="primary" disabled={busy || !chatMsg.trim()}><Icon name="arrow" size={16}/></button>
+          </form>
+        </div>
+      )}
+
+      {/* 3. CONEXIONES */}
+      {tab === 'Conexiones' && (
         <>
           <div className="section-heading">
             <div>
@@ -259,6 +338,15 @@ export function Community({
                     <Icon name="like" size={16} />
                     {person.contributions} aportes valiosos · ejemplo
                   </div>
+                  {snapshot.progress.connections.includes(person.id) ? (
+                    <a href={person.linkedin} target="_blank" rel="noreferrer" className="secondary w-full" style={{ color: '#0a66c2', borderColor: '#cfe0f0', background: '#f3f8fd', justifyContent: 'center', marginBottom: '10px' }}>
+                      <Icon name="linkedin" size={17} /> Ver LinkedIn
+                    </a>
+                  ) : (
+                    <button className="secondary w-full" disabled style={{ justifyContent: 'center', marginBottom: '10px', opacity: 0.6 }}>
+                      <Icon name="lock" size={15} /> LinkedIn oculto
+                    </button>
+                  )}
                   <button
                     className="secondary w-full"
                     disabled={busy || snapshot.progress.connections.includes(person.id)}
@@ -342,6 +430,7 @@ export function Profile({ snapshot, act, busy }: { snapshot: Snapshot; act: Act;
                 ['goal', 'Objetivo profesional'],
                 ['skills', 'Habilidades (separadas por comas)'],
                 ['portfolio', 'Enlace a tu portafolio'],
+                ['linkedin', 'Enlace a tu LinkedIn'],
               ].map(([name, label]) => (
                 <label key={name}>
                   {label}
@@ -379,6 +468,11 @@ export function Profile({ snapshot, act, busy }: { snapshot: Snapshot; act: Act;
                   rel="noreferrer"
                 >
                   Visitar mi portafolio <Icon name="external" size={17} />
+                </a>
+              )}
+              {p.profile.linkedin && (
+                <a className="text-button" href={p.profile.linkedin} target="_blank" rel="noreferrer" style={{ color: '#0a66c2', marginTop: '10px' }}>
+                  Conectar en LinkedIn <Icon name="external" size={17} />
                 </a>
               )}
               <div className="profile-stats">

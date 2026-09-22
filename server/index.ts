@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,cs
 CREATE TABLE IF NOT EXISTS threads(id TEXT PRIMARY KEY,cohort TEXT NOT NULL,author TEXT NOT NULL,channel TEXT NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS answers(id TEXT PRIMARY KEY,thread_id TEXT NOT NULL,author TEXT NOT NULL,body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS votes(answer_id TEXT NOT NULL,user_id TEXT NOT NULL,PRIMARY KEY(answer_id,user_id));
+CREATE TABLE IF NOT EXISTS chat_messages(id TEXT PRIMARY KEY, cohort TEXT NOT NULL, course_id TEXT NOT NULL, author TEXT NOT NULL, body TEXT NOT NULL, created INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,user_id TEXT,type TEXT,payload TEXT,created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS oidc(state TEXT PRIMARY KEY,nonce TEXT NOT NULL,browser TEXT NOT NULL,expires INTEGER NOT NULL);
 `);
@@ -72,6 +73,29 @@ for (const t of initialThreads) {
   );
   for (const a of t.answers)
     db.prepare('INSERT OR IGNORE INTO answers VALUES (?,?,?,?)').run(a.id, t.id, a.author, a.body);
+}
+const initialChats = [
+  // 1. Modelación de procesos
+  { id: 'chat-1', course: 'procesos', author: 'ana', text: '¡Hola a todos! ¿Alguien ya revisó el caso práctico de BPMN?', minsAgo: 60 },
+  { id: 'chat-2', course: 'procesos', author: 'carlos', text: 'Hola Ana, sí, está bastante claro. Si te atoras con los carriles me avisas 👍', minsAgo: 30 },
+
+  // 2. Estadística y pronósticos
+  { id: 'chat-3', course: 'estadistica', author: 'ana', text: 'Buenas noches. ¿Recomiendan hacer los pronósticos en Excel o directamente con código?', minsAgo: 120 },
+  { id: 'chat-4', course: 'estadistica', author: 'lucia', text: 'Con Excel es suficiente para las entregas, pero si sabes R o Python te ahorras tiempo en la limpieza.', minsAgo: 45 },
+
+  // 3. Sistemas operativos
+  { id: 'chat-5', course: 'sistemas', author: 'carlos', text: 'La parte de memoria virtual y concurrencia se me complicó un poco, ¿alguien para repasar mañana?', minsAgo: 90 },
+  { id: 'chat-6', course: 'sistemas', author: 'ana', text: '¡Yo me apunto Carlos! En la noche después del trabajo le damos una repasada.', minsAgo: 20 },
+
+  // 4. Proyectos de tecnología
+  { id: 'chat-7', course: 'proyectos', author: 'lucia', text: '¿Quién más está aprovechando el domingo para avanzar el cronograma del proyecto?', minsAgo: 15 },
+  { id: 'chat-8', course: 'proyectos', author: 'carlos', text: 'Aquí andamos en las mismas jaja, ¡ánimo con ese entregable!', minsAgo: 5 },
+];
+
+for (const c of initialChats) {
+  db.prepare('INSERT OR IGNORE INTO chat_messages VALUES (?,?,?,?,?,?)').run(
+    c.id, 'demo', c.course, c.author, c.text, Date.now() - (c.minsAgo * 60 * 1000)
+  );
 }
 app.disable('x-powered-by');
 app.use(express.json({ limit: '20kb' }));
@@ -193,6 +217,26 @@ app.get('/api/state', (_req, res) => {
   const s = res.locals.session;
   const current = readUser(s.user_id);
   saveUser(s.user_id, current);
+
+  // 👇 Limpieza del chat (se borran los viejos dejando 1 hora de margen)
+  const weekStartMs = new Date(weekKey() + 'T12:00:00Z').getTime();
+  const cutoff = weekStartMs - 3600 * 1000;
+  db.prepare('DELETE FROM chat_messages WHERE cohort=? AND created < ?').run(s.cohort, cutoff);
+
+  // 👇 Lectura de mensajes del chat
+  const chatMessages = (
+    db
+      .prepare('SELECT * FROM chat_messages WHERE cohort=? ORDER BY created ASC')
+      .all(s.cohort) as any[]
+  ).map((m) => ({
+    id: m.id,
+    courseId: m.course_id,
+    author: m.author,
+    authorName: readUser(m.author).profile.name,
+    body: m.body,
+    created: m.created,
+  }));
+
   const threads = (
     db.prepare('SELECT * FROM threads WHERE cohort=? ORDER BY rowid DESC').all(s.cohort) as Record<
       string,
@@ -217,12 +261,14 @@ app.get('/api/state', (_req, res) => {
         .get(a.id, s.user_id),
     })),
   }));
+
   res.json({
     userId: s.user_id,
     mode: s.mode,
     progress: readUser(s.user_id),
     week: weekKey(),
     threads,
+    chatMessages,
     csrf: s.csrf,
     aiEnabled: !!process.env.AI_SERVICE_URL,
   });
@@ -254,6 +300,20 @@ app.post('/api/goal', (req, res) => {
   const { goal } = z.object({ goal: z.enum(['days', 'minutes']) }).parse(req.body);
   mutate(res, (p) => ({ ...p, goal }), 'goal_changed', { goal });
 });
+
+app.post('/api/chat', (req, res) => {
+  const { courseId, body } = z.object({ courseId: z.string(), body: z.string().trim().min(1).max(500) }).parse(req.body);
+  const s = res.locals.session;
+  db.prepare('INSERT INTO chat_messages VALUES (?,?,?,?,?,?)').run(token(), s.cohort, courseId, s.user_id, body, Date.now());
+  res.json({ ok: true });
+});
+
+app.post('/api/chat/:id/delete', (req, res) => {
+  const s = res.locals.session;
+  db.prepare('DELETE FROM chat_messages WHERE id=? AND author=?').run(req.params.id, s.user_id);
+  res.json({ ok: true });
+});
+
 app.post('/api/profile', (req, res) => {
   const profile = z
     .object({
@@ -262,13 +322,8 @@ app.post('/api/profile', (req, res) => {
       industry: z.string().max(80),
       goal: z.string().max(250),
       skills: z.string().max(200),
-      portfolio: z.union([
-        z.literal(''),
-        z
-          .string()
-          .url()
-          .refine((v) => /^https?:\/\//.test(v)),
-      ]),
+      portfolio: z.union([z.literal(''), z.string().url().refine((v) => /^https?:\/\//.test(v))]),
+      linkedin: z.union([z.literal(''), z.string().url()]),
     })
     .parse(req.body);
   mutate(res, (p) => ({ ...p, profile }), 'profile_updated');
