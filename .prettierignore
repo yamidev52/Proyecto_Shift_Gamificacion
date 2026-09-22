@@ -1,0 +1,8 @@
+node_modules/
+dist/
+data/
+package-lock.json
+*.tsbuildinfo
+.env
+.env.*
+Iniciar Shift.command
