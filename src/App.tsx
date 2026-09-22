@@ -305,6 +305,25 @@ export default function App() {
                   <Icon name="calendar" size={17} /> Semestre 3
                 </span>
               </div>
+              {p.rescueActive && (
+                <section className="continue-banner" style={{ background: '#fdf6e3', borderColor: '#f7e4b5', marginBottom: '25px', minHeight: 'auto', padding: '20px' }}>
+                  <div style={{ position: 'relative', zIndex: 10 }}>
+                    <span className="badge" style={{ background: '#f4d173', color: '#5c4a16', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <Icon name="sparkles" size={14} /> ASISTENTE IA: PROTOCOLO DE RESCATE
+                    </span>
+                    <h2 style={{ color: '#5c4a16', marginTop: '10px' }}>Notamos que tuviste una semana pesada.</h2>
+                    <p style={{ color: '#826f34', fontSize: '13px', maxWidth: '600px' }}>
+                      Perder una racha es normal cuando se estudia y trabaja. No te desmotives. Te hemos regalado <strong>1 Congelador de Racha</strong> como cortesía para que vuelvas al curso sin estrés.
+                    </p>
+                    <div className="banner-bottom" style={{ marginTop: '15px' }}>
+                      <button className="primary" style={{ background: '#a88422', borderColor: '#a88422' }} 
+                        onClick={() => act('/rescue', {}, '¡Recuperaste el ritmo! Congelador de cortesía añadido a tu inventario.')}>
+                        Aceptar cortesía y continuar <Icon name="arrow" size={17} />
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              )}
               <div className="dashboard-layout">
                 <div className="main-column">
                   <section className="continue-banner">
@@ -626,6 +645,15 @@ export default function App() {
                   <div>
                     <strong>{p.xp.toLocaleString('es-MX')} XP</strong>
                     <span>Disponibles para canjear</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center', borderLeft: '1px solid #dbe7c9', paddingLeft: '20px' }}>
+                  <span style={{ color: '#dcca6e', display: 'inline-flex' }}>
+                    <Icon name="award" size={26} />
+                  </span>
+                  <div>
+                    <strong>{p.raffleTickets} Boletos</strong>
+                    <span>Sorteo de Becas</span>
                   </div>
                 </div>
               </div>

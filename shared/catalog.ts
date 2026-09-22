@@ -247,6 +247,15 @@ export const courses: Course[] = [
 // cost descuenta xp; level se compara con la experiencia histórica acumulada.
 export const rewards = [
   {
+    id: 'ticket',
+    title: 'Boleto Dorado (Sorteo)',
+    description: 'Acumula boletos para el gran sorteo de reinscripción. Gana becas del 50% o certificaciones profesionales.',
+    cost: 500,
+    icon: 'award',
+    category: 'Tu carrera',
+    level: 1,
+  },
+  {
     id: 'freeze',
     title: 'Congelador de racha',
     description:
@@ -393,6 +402,8 @@ export type Progress = {
   redemptions: { id: string; rewardId: string; date: string; status: string }[];
   connections: string[];
   nps: number | null;
+  raffleTickets: number;
+  rescueActive: boolean;
 };
 export type Thread = {
   id: string;

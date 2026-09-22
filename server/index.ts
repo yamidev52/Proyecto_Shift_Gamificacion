@@ -24,6 +24,7 @@ import {
   freeze,
   lessonById,
   settleWeeks,
+  claimRescue,
 } from './domain';
 // Configuración del proceso: nunca obtener URLs LTI confiables del token recibido.
 const app = express();
@@ -248,6 +249,7 @@ app.post('/api/rewards/:id', (req, res) =>
   mutate(res, (p) => redeem(p, req.params.id), 'reward_redeemed', { id: req.params.id }),
 );
 app.post('/api/freeze', (_req, res) => mutate(res, (p) => freeze(p), 'week_protected'));
+app.post('/api/rescue', (_req, res) => mutate(res, (p) => claimRescue(p), 'rescue_claimed'));
 app.post('/api/goal', (req, res) => {
   const { goal } = z.object({ goal: z.enum(['days', 'minutes']) }).parse(req.body);
   mutate(res, (p) => ({ ...p, goal }), 'goal_changed', { goal });

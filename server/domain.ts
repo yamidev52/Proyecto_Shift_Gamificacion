@@ -46,6 +46,8 @@ export function createProgress(demo = true, name = 'Estudiante MAPS'): Progress 
     redemptions: [],
     connections: [],
     nps: null,
+    raffleTickets: demo ? 2 : 0, 
+    rescueActive: false,
   };
 }
 /** Busca un ID estable en todas las materias; undefined significa que no existe. */
@@ -102,6 +104,7 @@ export function redeem(p: Progress, id: string) {
     throw Error('Esta recompensa se desbloquea en un nivel superior.');
   p.xp -= r.cost;
   if (id === 'freeze') p.freezes += 1;
+  if (id === 'ticket') p.raffleTickets += 1;
   p.redemptions.unshift({
     id: crypto.randomUUID(),
     rewardId: id,
@@ -131,11 +134,19 @@ export function settleWeeks(p: Progress, now = new Date()) {
   let checked = 0;
   while (cursor < week && checked++ < 520) {
     if (!(p.creditedWeeks || []).includes(cursor) && !p.protectedWeeks.includes(cursor))
+      if (p.streak > 0) p.rescueActive = true;
       p.streak = 0;
     const d = new Date(cursor + 'T12:00:00Z');
     d.setUTCDate(d.getUTCDate() + 7);
     cursor = d.toISOString().slice(0, 10);
   }
   p.lastWeek = week;
+  return p;
+}
+
+export function claimRescue(p: Progress) {
+  if (!p.rescueActive) throw Error('No tienes rescates pendientes.');
+  p.rescueActive = false;
+  p.freezes += 1;
   return p;
 }
