@@ -565,6 +565,6 @@ app.use(
     });
   },
 );
-app.listen(port, '127.0.0.1', () =>
+app.listen(port, '0.0.0.0', () =>
   console.log(`Shift API disponible en http://127.0.0.1:${port}`),
 );
