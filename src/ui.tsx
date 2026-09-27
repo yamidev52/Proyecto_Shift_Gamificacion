@@ -92,6 +92,7 @@ const icons = {
   reset: RotateCcw,
   download: Download,
   headphones: Headphones,
+  linkedin: Linkedin,
 };
 /** Mantiene nombres semánticos estables para los iconos usados en el catálogo. */
 export function Icon({

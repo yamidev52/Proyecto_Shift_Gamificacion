@@ -42,6 +42,7 @@ export function createProgress(demo = true, name = 'Estudiante MAPS'): Progress 
       goal: 'Quiero mejorar procesos y conectar con profesionales',
       skills: 'Gestión de proyectos, Comunicación',
       portfolio: '',
+      linkedin: demo ? 'https://linkedin.com/in/sergioyamil' : '',
     },
     redemptions: [],
     connections: [],
